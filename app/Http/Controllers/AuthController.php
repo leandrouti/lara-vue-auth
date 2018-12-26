@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
 {
@@ -25,34 +26,35 @@ class AuthController extends Controller
             ], 422);
         }
 
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password)
         ]);
 
-        return response()->json(['status' => 'success'], 200);
+        return response()->json(['status' => 'success', 'data' => $user], 200);
     }
 
     public function login(Request $request)
     {
         $credentials = $request->only('email', 'password');
-        if($token = $this->guard()->attempt($credentials)){
-            return response()->json(['status' => 'success'], 200)->header('Authorization', $token);
+        
+        if(! $token = JWTAuth::attempt($credentials)){
+            return response()
+            ->json([
+                'status' => 'error',
+                'error' => 'invalid.credentials',
+                'msg' => 'Invalid Credentials.'
+            ], 400);
         }
 
-        return response()->json(['error' => 'login_error'], 401);
+        return response()->json(['status'], 200)->header('Authorization', $token);
     }
 
     public function refresh(Request $request)
     {
-        if($token = $this->guard()->refresh()){
-            return response()
-                ->json(['status' => 'success'], 200)
-                ->header('Authorization', $token);
-        }
-
-        return response()->json(['error' => 'refresh_token_error'], 401);
+        return response()
+            ->json(['status' => 'success'], 200);
     }
 
     public function user(Request $request)
@@ -66,17 +68,12 @@ class AuthController extends Controller
     
     public function logout(Request $request)
     {
-        $this->guard()->logout();
+        JWTAuth::invalidate();
+
         return response()
             ->json([
                 'status' => 'success',
                 'msg' => 'Logged out Successfully.'
             ], 200);
     }
-
-    private function guard()
-    {
-        return Auth::guard();
-    }
-
 }
