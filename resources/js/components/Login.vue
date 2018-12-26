@@ -25,14 +25,37 @@ export default {
   data(){
     return {
       error : false,
-      email : '',
-      password: ''
+      email : null,
+      password: null
     }
   },
 
   methods : {
     login(){
-      console.log('login')
+      var app = this;
+
+      this.$auth.login({
+        url : '/auth/login',
+        params : {
+          email : app.email,
+          password : app.password
+        },
+
+        success : function() {
+          console.log('success');
+        },
+
+        error : function(r) {
+          this.error = true;
+          console.log('fail', r);
+
+          console.log(r.data.error);
+        },
+
+        rememberMe : true,
+        redirect : '/dashboard',
+        fetchUser: true,
+      });
     }
   }
 }
